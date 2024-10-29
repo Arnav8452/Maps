@@ -3,81 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Precise Location Tracking on Android with Leaflet</title>
+    <title>Map Centered on User's Location</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
         #map {
             width: 100%;
             height: 100vh;
+            background-color: #eee;
+            position: relative;
+            transition: transform 0.3s ease-in-out; /* Smooth transition */
+        }
+
+        /* Style for the circular recenter button */
+        #recenterButton {
+            position: absolute;
+            bottom: 20px; /* Distance from the bottom */
+            left: 20px; /* Distance from the left */
+            background-color: grey; /* Button background color */
+            border: none; /* Remove border */
+            border-radius: 50%; /* Circular shape */
+            width: 50px; /* Button width */
+            height: 50px; /* Button height */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
+            cursor: pointer; /* Pointer cursor on hover */
+            z-index: 1000; /* Ensure button is above the map */
+        }
+
+        /* Add an inner circle to the button */
+        #recenterButton:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px; /* Inner circle width */
+            height: 30px; /* Inner circle height */
+            background-color: white; /* Inner circle color */
+            border-radius: 50%; /* Circular shape */
+            transform: translate(-50%, -50%); /* Center the inner circle */
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <button id="recenterButton"></button> <!-- Use button element for better semantics -->
+    
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
     <script>
-        // Initialize the map with a default location and zoom
-        const map = L.map('map').setView([51.505, -0.09], 13);
+        const map = L.map('map', {
+            zoomControl: false // Disable default zoom controls
+        }).setView([28.6139, 77.2090], 13); // Default center on New Delhi
 
-        // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Create a marker for the user's location
-        const userMarker = L.marker([51.505, -0.09]).addTo(map);
+        const userMarker = L.marker([28.6139, 77.2090]).addTo(map);
 
-        // Check if Geolocation is available and request permission
+        let userLocation; // Variable to store user's location
+
+        // Update user's position
         if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(
+            navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
-                    const accuracy = position.coords.accuracy;
 
-                    // Update the marker's position
-                    userMarker.setLatLng([latitude, longitude]);
+                    // Store user's location
+                    userLocation = [latitude, longitude];
 
-                    // Adjust zoom level based on accuracy
-                    if (accuracy < 20) {
-                        map.setView([latitude, longitude], 15); // High accuracy zoom
-                    } else {
-                        map.setView([latitude, longitude], 13); // Standard zoom for lower accuracy
-                    }
+                    // Center the map on the user's location once
+                    map.setView(userLocation, 15);
+                    userMarker.setLatLng(userLocation);
                 },
                 (error) => {
-                    // Handle possible errors
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            alert("Location access denied. Please allow location access for accurate tracking.");
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            alert("Location information is unavailable. Make sure GPS is enabled.");
-                            break;
-                        case error.TIMEOUT:
-                            alert("Location request timed out. Please try again.");
-                            break;
-                        case error.UNKNOWN_ERROR:
-                            alert("An unknown error occurred. Please try again.");
-                            break;
-                    }
+                    console.error("Error fetching location:", error);
                 },
-                {
-                    enableHighAccuracy: true, // Request high accuracy location
-                    maximumAge: 0,           // No cached position
-                    timeout: 10000           // Wait up to 10 seconds for location
-                }
+                { enableHighAccuracy: true }
             );
         } else {
             alert("Geolocation is not supported by your browser.");
         }
+
+        // Recenter button click event
+        document.getElementById('recenterButton').addEventListener('click', () => {
+            if (userLocation) {
+                // Zoom in with animation
+                map.setView(userLocation, 15, { animate: true }); // Recenter the map to the user's location with animation
+                userMarker.setLatLng(userLocation); // Update marker position
+                setTimeout(() => {
+                    map.setZoom(map.getZoom() + 1); // Additional zoom-in after recentring
+                }, 500); // Delay before zooming in further
+            } else {
+                alert("Unable to locate your position.");
+            }
+        });
+
+        let lastTouchX = null;
+
+        // Handle touch start
+        map.on('touchstart', (event) => {
+            lastTouchX = event.touches[0].clientX; // Capture initial touch position
+        });
+
+        // Handle touch move for rotation
+        map.on('touchmove', (event) => {
+            if (lastTouchX !== null) {
+                const currentTouchX = event.touches[0].clientX;
+                const deltaX = currentTouchX - lastTouchX; // Calculate change in touch position
+                lastTouchX = currentTouchX; // Update last touch position
+
+                // Rotate the map based on the touch movement
+                const currentRotation = parseFloat(getComputedStyle(document.getElementById('map')).transform.match(/matrix.*\((.+)\)/)[1].split(',')[1]) || 0;
+                const newRotation = currentRotation + deltaX; // Adjust rotation based on deltaX
+
+                document.getElementById('map').style.transform = `rotate(${newRotation}deg)`; // Apply rotation
+            }
+        });
+
+        // Reset last touch position on touch end
+        map.on('touchend', () => {
+            lastTouchX = null;
+        });
     </script>
 </body>
 </html>
