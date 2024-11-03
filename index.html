@@ -3,64 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Centered on User's Location</title>
+    <title>Map with Enhanced Features</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
-        /* Remove default margins and paddings */
+        /* Reset for full viewport */
         body, html {
             margin: 0;
             padding: 0;
-            height: 100%; /* Ensure the body takes up full height */
-            overflow: hidden; /* Prevent scrolling */
+            height: 100%;
+            overflow: hidden;
         }
 
+        /* Fullscreen map */
         #map {
-            width: 100vw; /* Full viewport width */
-            height: 100vh; /* Full viewport height */
-            background-color: #eee;
-            position: relative;
-            transition: transform 0.3s ease-in-out; /* Smooth transition */
+            width: 100vw;
+            height: 100vh;
         }
 
-        /* Style for the circular recenter button */
+        /* Custom search bar style */
+        .leaflet-control-geocoder {
+            max-width: 400px;
+            width: 90%; /* Adjust width */
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3); /* Shadow */
+            border-radius: 25px; /* Rounded corners */
+            background-color: white;
+            font-size: 16px;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            padding: 10px;
+        }
+
+        /* Style for the recenter button */
         #recenterButton {
             position: absolute;
-            bottom: 20px; /* Distance from the bottom */
-            left: 20px; /* Distance from the left */
-            background-color: grey; /* Button background color */
-            border: none; /* Remove border */
-            border-radius: 50%; /* Circular shape */
-            width: 50px; /* Button width */
-            height: 50px; /* Button height */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
-            cursor: pointer; /* Pointer cursor on hover */
-            z-index: 1000; /* Ensure button is above the map */
+            bottom: 20px;
+            left: 20px;
+            background-color: grey;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
         }
 
-        /* Add an inner circle to the button */
         #recenterButton:before {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 30px; /* Inner circle width */
-            height: 30px; /* Inner circle height */
-            background-color: white; /* Inner circle color */
-            border-radius: 50%; /* Circular shape */
-            transform: translate(-50%, -50%); /* Center the inner circle */
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <button id="recenterButton"></button> <!-- Use button element for better semantics -->
-    
+    <button id="recenterButton"></button>
+
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
     <script>
+        // Initialize map and set default view
         const map = L.map('map', {
-            zoomControl: false // Disable default zoom controls
-        }).setView([28.6139, 77.2090], 13); // Default center on New Delhi
+            zoomControl: false
+        }).setView([28.6139, 77.2090], 13); // Default to New Delhi
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -68,20 +83,14 @@
         }).addTo(map);
 
         const userMarker = L.marker([28.6139, 77.2090]).addTo(map);
+        let userLocation;
 
-        let userLocation; // Variable to store user's location
-
-        // Update user's position
+        // Get user's location and center map
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-
-                    // Store user's location
+                    const { latitude, longitude } = position.coords;
                     userLocation = [latitude, longitude];
-
-                    // Center the map on the user's location once
                     map.setView(userLocation, 15);
                     userMarker.setLatLng(userLocation);
                 },
@@ -94,40 +103,40 @@
             alert("Geolocation is not supported by your browser.");
         }
 
-        // Recenter button click event
+        // Geocoder for location search
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false
+        }).on('markgeocode', function(e) {
+            const latlng = e.geocode.center;
+            map.setView(latlng, 15); // Pan to searched location
+        }).addTo(map);
+
+        // Recenter button event
         document.getElementById('recenterButton').addEventListener('click', () => {
             if (userLocation) {
-                // Moderate zoom-in animation
-                map.setView(userLocation, 16, { animate: true }); // Set to a slightly higher zoom level
-                userMarker.setLatLng(userLocation); // Update marker position
+                map.setView(userLocation, 16, { animate: true });
+                userMarker.setLatLng(userLocation);
             } else {
                 alert("Unable to locate your position.");
             }
         });
 
+        // Touch-based rotation handling
         let lastTouchX = null;
-
-        // Handle touch start
         map.on('touchstart', (event) => {
-            lastTouchX = event.touches[0].clientX; // Capture initial touch position
+            lastTouchX = event.touches[0].clientX;
         });
-
-        // Handle touch move for rotation
         map.on('touchmove', (event) => {
             if (lastTouchX !== null) {
                 const currentTouchX = event.touches[0].clientX;
-                const deltaX = currentTouchX - lastTouchX; // Calculate change in touch position
-                lastTouchX = currentTouchX; // Update last touch position
+                const deltaX = currentTouchX - lastTouchX;
+                lastTouchX = currentTouchX;
 
-                // Rotate the map based on the touch movement
                 const currentRotation = parseFloat(getComputedStyle(document.getElementById('map')).transform.match(/matrix.*\((.+)\)/)[1].split(',')[1]) || 0;
-                const newRotation = currentRotation + deltaX; // Adjust rotation based on deltaX
-
-                document.getElementById('map').style.transform = `rotate(${newRotation}deg)`; // Apply rotation
+                const newRotation = currentRotation + deltaX;
+                document.getElementById('map').style.transform = `rotate(${newRotation}deg)`;
             }
         });
-
-        // Reset last touch position on touch end
         map.on('touchend', () => {
             lastTouchX = null;
         });
