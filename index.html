@@ -1,145 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map with Enhanced Features</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <style>
-        /* Reset for full viewport */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map with Enhanced Features - OpenLayers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css" type="text/css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol-geocoder@latest/dist/ol-geocoder.min.css" type="text/css">
+  <style>
+    html, body { 
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; 
+    }
 
-        /* Fullscreen map */
-        #map {
-            width: 100vw;
-            height: 100vh;
-        }
+    #map { 
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
 
-        /* Custom search bar style */
-        .leaflet-control-geocoder {
-            max-width: 400px;
-            width: 90%; /* Adjust width */
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3); /* Shadow */
-            border-radius: 25px; /* Rounded corners */
-            background-color: white;
-            font-size: 16px;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            padding: 10px;
-        }
+    .ol-geocoder {
+      z-index: 1000;
+      position: absolute;
+      top: 15px;
+      left: 15px; 
+      width: calc(100% - 30px); 
+      max-width: 400px; 
+      box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4);  
+    }
 
-        /* Style for the recenter button */
-        #recenterButton {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background-color: grey;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1000;
-        }
+    .ol-geocoder .gcd-gl-control { 
+      border-radius: 20px; 
+    }
 
-        #recenterButton:before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 30px;
-            height: 30px;
-            background-color: white;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
-    </style>
+    #resetRotationButton, #recenterButton {
+      position: absolute;
+      bottom: 20px;
+      background-color: white;
+      border: none; 
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      border-radius: 50%; 
+      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #resetRotationButton {
+      right: 20px;
+    }
+
+    #recenterButton {
+      right: 80px;
+      display: flex; 
+    }
+
+    #resetRotationButton .compass-arrow { 
+      width: 0; 
+      height: 0; 
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 16px solid red; 
+      position: relative;
+      transform-origin: 50% 70%; 
+    }
+
+    #resetRotationButton .compass-arrow::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 12px solid black;
+      position: absolute;
+      top: 10px;
+      left: -6px;
+    }
+
+    #recenterButton::before {
+      content: '📍';
+      font-size: 24px;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <button id="recenterButton"></button>
+  <div id="map"></div>
+  <button id="recenterButton" title="Re-center to my location"></button>
+  <button id="resetRotationButton" title="Reset map rotation">
+    <div class="compass-arrow"></div>
+  </button>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-rotatedmarker/0.2.0/leaflet.rotatedMarker.min.js"></script>
-    <script>
-        // Initialize map and set default view
-        const map = L.map('map', {
-            zoomControl: false
-        }).setView([28.6139, 77.2090], 13); // Default to New Delhi
+  <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/build/ol.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ol-geocoder@latest/dist/ol-geocoder.min.js"></script>
+  <script>
+    const map = new ol.Map({
+      target: 'map', 
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM() 
+        })
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([77.2090, 28.6139]), 
+        zoom: 13 
+      }),
+      controls: ol.control.defaults({
+        zoom: false 
+      })
+    });
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    let userLocation = ol.proj.fromLonLat([77.2090, 28.6139]);
+    const userMarker = new ol.Feature({
+      geometry: new ol.geom.Point(userLocation) 
+    });
 
-        const userMarker = L.marker([28.6139, 77.2090]).addTo(map);
-        let userLocation;
+    const markerStyle = new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: 7,
+        fill: new ol.style.Fill({ color: 'blue' }), 
+        stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+      })
+    });
 
-        // Get user's location and center map
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    userLocation = [latitude, longitude];
-                    map.setView(userLocation, 15);
-                    userMarker.setLatLng(userLocation);
-                },
-                (error) => {
-                    console.error("Error fetching location:", error);
-                },
-                { enableHighAccuracy: true }
-            );
-        } else {
-            alert("Geolocation is not supported by your browser.");
+    userMarker.setStyle(markerStyle); 
+
+    const markerLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: [userMarker] 
+      })
+    });
+    map.addLayer(markerLayer); 
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords; 
+          userLocation = ol.proj.fromLonLat([longitude, latitude]); 
+          map.getView().setCenter(userLocation); 
+          map.getView().setZoom(15); 
+          userMarker.setGeometry(new ol.geom.Point(userLocation)); 
+        },
+        (error) => {
+          console.error("Error fetching location:", error); 
+          alert("Could not get your location. Please search for it."); 
+          map.getView().setCenter(ol.proj.fromLonLat([0, 51.5074]));
+          map.getView().setZoom(10); 
+        }, {
+          enableHighAccuracy: true, 
+          timeout: 10000 
         }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser."); 
+      map.getView().setCenter(ol.proj.fromLonLat([0, 51.5074])); 
+      map.getView().setZoom(10); 
+    }
 
-        // Geocoder for location search
-        const geocoder = L.Control.geocoder({
-            defaultMarkGeocode: false
-        }).on('markgeocode', function(e) {
-            const latlng = e.geocode.center;
-            map.setView(latlng, 15); // Pan to searched location
-        }).addTo(map);
+    const geocoder = new Geocoder('nominatim', {
+      provider: 'osm', 
+      lang: 'en-US', 
+      placeholder: 'Search for a place', 
+      limit: 5, 
+      keepOpen: true,
+      targetType: 'text-input', 
+      autoComplete: true, 
+      autoCompleteMinLength: 2, 
+      preventDefault: true,
+      featureStyle: null 
+    });
+    map.addControl(geocoder); 
 
-        // Recenter button event
-        document.getElementById('recenterButton').addEventListener('click', () => {
-            if (userLocation) {
-                map.setView(userLocation, 16, { animate: true });
-                userMarker.setLatLng(userLocation);
-            } else {
-                alert("Unable to locate your position.");
-            }
-        });
+    const vectorSource = new ol.source.Vector(); 
+    const vectorLayer = new ol.layer.Vector({ source: vectorSource });
+    map.addLayer(vectorLayer); 
 
-        // Touch-based rotation handling
-        let lastTouchX = null;
-        map.on('touchstart', (event) => {
-            lastTouchX = event.touches[0].clientX;
-        });
-        map.on('touchmove', (event) => {
-            if (lastTouchX !== null) {
-                const currentTouchX = event.touches[0].clientX;
-                const deltaX = currentTouchX - lastTouchX;
-                lastTouchX = currentTouchX;
+    geocoder.on('addresschosen', function(evt) {
+      vectorSource.clear(); 
 
-                const currentRotation = parseFloat(getComputedStyle(document.getElementById('map')).transform.match(/matrix.*\((.+)\)/)[1].split(',')[1]) || 0;
-                const newRotation = currentRotation + deltaX;
-                document.getElementById('map').style.transform = `rotate(${newRotation}deg)`;
-            }
+      const coordinate = evt.coordinate; 
+      const searchMarker = new ol.Feature({
+        geometry: new ol.geom.Point(coordinate) 
+      });
+      
+      const destinationMarkerStyle = new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: 7,
+          fill: new ol.style.Fill({ color: 'white' }), 
+          stroke: new ol.style.Stroke({ color: 'black', width: 2 }) 
+        })
+      });
+
+      searchMarker.setStyle(destinationMarkerStyle); 
+      vectorSource.addFeature(searchMarker); 
+
+      map.getView().animate({
+        center: coordinate, 
+        zoom: 15, 
+        duration: 1000 
+      });
+    });
+
+    let compassAngle = 0; 
+
+    map.on('moveend', function(evt) { 
+      const view = map.getView(); 
+      const rotation = view.getRotation(); 
+      compassAngle = rotation; 
+
+      if (rotation !== 0) {
+        document.getElementById('resetRotationButton').style.display = 'flex';
+        updateCompass(); 
+      } else {
+        document.getElementById('resetRotationButton').style.display = 'none'; 
+      }
+    });
+
+    function updateCompass() {
+      const compass = document.getElementById('resetRotationButton');
+      compass.style.transform = `rotate(${compassAngle}rad)`; 
+    }
+
+    document.getElementById('recenterButton').addEventListener('click', () => {
+      if (userLocation) {
+        map.getView().animate({
+          center: userLocation,
+          zoom: 16, 
+          duration: 500 
         });
-        map.on('touchend', () => {
-            lastTouchX = null;
-        });
-    </script>
+      } else {
+        alert("Unable to locate your position.");
+      }
+    });
+
+    document.getElementById('resetRotationButton').addEventListener('click', () => {
+      map.getView().animate({
+        rotation: 0, 
+        duration: 500 
+      });
+    });
+
+    map.addInteraction(new ol.interaction.DragRotateAndZoom()); 
+  </script>
 </body>
 </html>
