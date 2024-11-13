@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Full-Screen MapTiler Map with Geolocation</title>
+  <title>Map with Pinned Marker, User Geolocation, and Search</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
   <style>
     html, body {
       margin: 0;
@@ -11,44 +12,143 @@
       width: 100%;
       height: 100%;
     }
-    iframe {
+    #map {
       width: 100%;
       height: 100%;
-      border: 0;
+    }
+    /* Style for the Recenter Button */
+    #recenterButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    /* Style for the search bar */
+    #searchBar {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 25px;
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
 
-  <!-- Fullscreen MapTiler iframe -->
-  <iframe id="mapFrame"
-    src="https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/?key=cWWbq34RoiMu75UrOkgo#0.7/22.80535/2.86559"
-    allowfullscreen>
-  </iframe>
+  <div id="map"></div>
+  <div id="recenterButton">📍</div>
+  <input id="searchBar" type="text" placeholder="Search location..." />
 
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
   <script>
+    // MapTiler API Key
+    const mapTilerKey = "cWWbq34RoiMu75UrOkgo";
+
+    // Initialize the Mapbox map with MapTiler style
+    mapboxgl.accessToken = mapTilerKey;
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
+      center: [74.1240, 15.2993], // Initial center (Goa coordinates)
+      zoom: 10 // Initial zoom level
+    });
+
+    // Add zoom and rotation controls to the map
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // Create a marker element styled like Google Maps for user location
+    const userMarker = new mapboxgl.Marker({ color: "#4285F4" }); // Blue color for user position
+
+    // Create another marker for search results
+    const searchMarker = new mapboxgl.Marker({ color: "#FF5733" }); // Red color for search location
+
+    let userLocation = null;
+
+    // Function to update marker to user's location
+    function setUserLocation(lat, lon) {
+      userLocation = { lat, lon }; // Store the user's location
+      userMarker.setLngLat([lon, lat]).addTo(map);
+      map.flyTo({
+        center: [lon, lat],
+        zoom: 14,
+        essential: true
+      });
+    }
+
+    // Geolocation to get user's position
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          
-          // Use a zoom level to zoom in after getting the user's location
-          const zoomLevel = 14; // Adjust this value as per your needs
-          
-          // Adjust the map URL to include the user's location and zoom level
-          const mapUrl = `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/?key=cWWbq34RoiMu75UrOkgo#${zoomLevel}/${latitude}/${longitude}`;
-          
-          // Update the iframe's src to reflect the user's location and zoom
-          document.getElementById('mapFrame').src = mapUrl;
+          setUserLocation(latitude, longitude);
         },
         (error) => {
           console.error("Error getting location:", error);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
-    } else {
-      console.log("Geolocation is not supported by this browser.");
     }
+
+    // Event listener for the recenter button to go back to user's location
+    document.getElementById("recenterButton").addEventListener("click", () => {
+      if (userLocation) {
+        map.flyTo({
+          center: [userLocation.lon, userLocation.lat],
+          zoom: 14,
+          essential: true
+        });
+      } else {
+        console.log("User location not available.");
+      }
+    });
+
+    // Function to search a location using Nominatim
+    function searchLocation(query) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&addressdetails=1&limit=1`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.length > 0) {
+            const location = data[0];
+            const { lat, lon } = location;
+            // Move search marker to the searched location
+            searchMarker.setLngLat([lon, lat]).addTo(map);
+            map.flyTo({
+              center: [lon, lat],
+              zoom: 14,
+              essential: true
+            });
+          } else {
+            alert("Location not found!");
+          }
+        })
+        .catch(error => {
+          console.error("Error searching location:", error);
+        });
+    }
+
+    // Event listener for the search bar to search location on enter key
+    document.getElementById("searchBar").addEventListener("keydown", (e) => {
+      if (e.key === 'Enter') {
+        const query = e.target.value;
+        searchLocation(query);
+      }
+    });
   </script>
 
 </body>
