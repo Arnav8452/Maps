@@ -12,11 +12,82 @@
       width: 100%;
       height: 100%;
     }
+
+    /* Main map container */
     #map {
       width: 100%;
       height: 100%;
     }
-    /* Style for the Recenter Button */
+
+    /* Sidebar Button Styles */
+    #sidebarToggleButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: transparent;
+      border: none;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+
+    /* Sidebar Styles */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: -300px; /* Initially hidden */
+      width: 250px;
+      height: 100%;
+      background-color: #333;
+      color: white;
+      transition: left 0.3s ease-in-out;
+      padding: 20px;
+      z-index: 9;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+      border-radius: 10px 0 0 10px;
+    }
+
+    /* Sidebar Header */
+    #sidebar h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    /* Sidebar content */
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    
+    #sidebar ul li {
+      padding: 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    /* On Hover Sidebar Items */
+    #sidebar ul li:hover {
+      background-color: #555;
+    }
+
+    /* Sidebar Close Button */
+    #closeSidebarButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: transparent;
+      color: white;
+      border: none;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    /* Recenter Button */
     #recenterButton {
       position: fixed;
       bottom: 20px;
@@ -30,8 +101,23 @@
       cursor: pointer;
       z-index: 1;
     }
+    
+    /* Toggle View Button */
+    #toggleViewButton {
+      position: absolute;
+      bottom: 100px; /* Just below the map controls */
+      right: 20px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1;
+    }
 
-    /* Style for the search bar */
+    /* Search Bar */
     #searchBar {
       position: absolute;
       top: 10px;
@@ -45,42 +131,70 @@
       font-size: 16px;
       z-index: 2;
     }
+
+    /* Media Query for Mobile Responsiveness */
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 250px;
+      }
+
+      #searchBar {
+        width: 250px;
+      }
+
+      #recenterButton, #toggleViewButton {
+        padding: 8px;
+      }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <button id="closeSidebarButton">&times;</button>
+    <h2>Menu</h2>
+    <ul>
+      <li>Sign In</li>
+      <li>Log In</li>
+      <li>Account</li>
+    </ul>
+  </div>
+
+  <!-- Map Container -->
   <div id="map"></div>
+
+  <!-- Sidebar Toggle Button -->
+  <button id="sidebarToggleButton">&#9776;</button>
+
+  <!-- Recenter and Toggle View Buttons -->
   <div id="recenterButton">📍</div>
+  <div id="toggleViewButton">🔄</div>
+
+  <!-- Search Bar -->
   <input id="searchBar" type="text" placeholder="Search location..." />
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
   <script>
-    // MapTiler API Key
     const mapTilerKey = "cWWbq34RoiMu75UrOkgo";
 
-    // Initialize the Mapbox map with MapTiler style
+    // Initialize the map with MapTiler style
     mapboxgl.accessToken = mapTilerKey;
     const map = new mapboxgl.Map({
       container: 'map',
       style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
-      center: [74.1240, 15.2993], // Initial center (Goa coordinates)
-      zoom: 10 // Initial zoom level
+      center: [74.1240, 15.2993],
+      zoom: 10
     });
 
-    // Add zoom and rotation controls to the map
     map.addControl(new mapboxgl.NavigationControl());
 
-    // Create a marker element styled like Google Maps for user location
-    const userMarker = new mapboxgl.Marker({ color: "#4285F4" }); // Blue color for user position
-
-    // Create another marker for search results
-    const searchMarker = new mapboxgl.Marker({ color: "#FF5733" }); // Red color for search location
-
+    const userMarker = new mapboxgl.Marker({ color: "#4285F4" });
+    const searchMarker = new mapboxgl.Marker({ color: "#FF5733" });
     let userLocation = null;
 
-    // Function to update marker to user's location
     function setUserLocation(lat, lon) {
-      userLocation = { lat, lon }; // Store the user's location
+      userLocation = { lat, lon };
       userMarker.setLngLat([lon, lat]).addTo(map);
       map.flyTo({
         center: [lon, lat],
@@ -89,7 +203,6 @@
       });
     }
 
-    // Geolocation to get user's position
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -103,7 +216,7 @@
       );
     }
 
-    // Event listener for the recenter button to go back to user's location
+    // Recenter button logic
     document.getElementById("recenterButton").addEventListener("click", () => {
       if (userLocation) {
         map.flyTo({
@@ -116,7 +229,7 @@
       }
     });
 
-    // Function to search a location using Nominatim
+    // Search location function
     function searchLocation(query) {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&addressdetails=1&limit=1`;
 
@@ -126,7 +239,6 @@
           if (data.length > 0) {
             const location = data[0];
             const { lat, lon } = location;
-            // Move search marker to the searched location
             searchMarker.setLngLat([lon, lat]).addTo(map);
             map.flyTo({
               center: [lon, lat],
@@ -142,14 +254,46 @@
         });
     }
 
-    // Event listener for the search bar to search location on enter key
     document.getElementById("searchBar").addEventListener("keydown", (e) => {
       if (e.key === 'Enter') {
         const query = e.target.value;
         searchLocation(query);
       }
     });
-  </script>
 
+    // Toggle view button logic
+    let isTopView = true;
+    document.getElementById("toggleViewButton").addEventListener("click", () => {
+      if (isTopView) {
+        map.flyTo({
+          pitch: 60,
+          bearing: 0,
+          essential: true
+        });
+      } else {
+        map.flyTo({
+          pitch: 0,
+          bearing: 0,
+          essential: true
+        });
+      }
+      isTopView = !isTopView;
+    });
+
+    // Sidebar toggle functionality
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleButton = document.getElementById('sidebarToggleButton');
+    const closeSidebarButton = document.getElementById('closeSidebarButton');
+
+    sidebarToggleButton.addEventListener('click', () => {
+      sidebar.style.left = '0'; // Show sidebar
+      sidebarToggleButton.style.display = 'none'; // Hide sidebar button
+    });
+
+    closeSidebarButton.addEventListener('click', () => {
+      sidebar.style.left = '-300px'; // Hide sidebar
+      sidebarToggleButton.style.display = 'block'; // Show sidebar button
+    });
+  </script>
 </body>
 </html>
