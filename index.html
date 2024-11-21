@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map with Pinned Marker, User Geolocation, and Search</title>
+  <!-- Mapbox GL JS CSS -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+ 
+
   <style>
     html, body {
       margin: 0;
@@ -13,13 +16,11 @@
       height: 100%;
     }
 
-    /* Main map container */
     #map {
       width: 100%;
       height: 100%;
     }
 
-    /* Sidebar Button Styles */
     #sidebarToggleButton {
       position: absolute;
       top: 10px;
@@ -33,11 +34,10 @@
       transition: all 0.3s ease;
     }
 
-    /* Sidebar Styles */
     #sidebar {
       position: fixed;
       top: 0;
-      left: -300px; /* Initially hidden */
+      left: -300px;
       width: 250px;
       height: 100%;
       background-color: #333;
@@ -49,19 +49,17 @@
       border-radius: 10px 0 0 10px;
     }
 
-    /* Sidebar Header */
     #sidebar h2 {
       text-align: center;
       margin-bottom: 20px;
       color: #fff;
     }
 
-    /* Sidebar content */
     #sidebar ul {
       list-style-type: none;
       padding: 0;
     }
-    
+
     #sidebar ul li {
       padding: 15px;
       cursor: pointer;
@@ -70,12 +68,10 @@
       transition: background-color 0.3s ease;
     }
 
-    /* On Hover Sidebar Items */
     #sidebar ul li:hover {
       background-color: #555;
     }
 
-    /* Sidebar Close Button */
     #closeSidebarButton {
       position: absolute;
       top: 10px;
@@ -87,7 +83,6 @@
       cursor: pointer;
     }
 
-    /* Recenter Button */
     #recenterButton {
       position: fixed;
       bottom: 20px;
@@ -101,11 +96,10 @@
       cursor: pointer;
       z-index: 1;
     }
-    
-    /* Toggle View Button */
+
     #toggleViewButton {
       position: absolute;
-      bottom: 100px; /* Just below the map controls */
+      bottom: 100px;
       right: 20px;
       padding: 10px;
       background-color: white;
@@ -117,7 +111,6 @@
       z-index: 1;
     }
 
-    /* Search Bar */
     #searchBar {
       position: absolute;
       top: 10px;
@@ -130,6 +123,22 @@
       width: 300px;
       font-size: 16px;
       z-index: 2;
+    }
+
+    .auth-button {
+      margin: 10px;
+      padding: 10px;
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+
+    .auth-button:hover {
+      background-color: #3367D6;
     }
 
     /* Media Query for Mobile Responsiveness */
@@ -146,6 +155,8 @@
         padding: 8px;
       }
     }
+
+
   </style>
 </head>
 <body>
@@ -155,8 +166,8 @@
     <button id="closeSidebarButton">&times;</button>
     <h2>Menu</h2>
     <ul>
-      <li>Sign In</li>
-      <li>Log In</li>
+      <li id="signInBtn">Sign In with Google</li>
+      <li id="loginBtn">Log In with Email</li>
       <li>Account</li>
     </ul>
   </div>
@@ -174,126 +185,180 @@
   <!-- Search Bar -->
   <input id="searchBar" type="text" placeholder="Search location..." />
 
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
-  <script>
-    const mapTilerKey = "cWWbq34RoiMu75UrOkgo";
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
 
-    // Initialize the map with MapTiler style
-    mapboxgl.accessToken = mapTilerKey;
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
-      center: [74.1240, 15.2993],
-      zoom: 10
+<script>
+  const mapTilerKey = "cWWbq34RoiMu75UrOkgo";
+
+  // Initialize the map with MapTiler style
+  mapboxgl.accessToken = mapTilerKey;
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
+    center: [74.1240, 15.2993],
+    zoom: 10
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+
+  const userMarker = new mapboxgl.Marker({ color: "#4285F4" });
+  const searchMarker = new mapboxgl.Marker({ color: "#FF5733" });
+  let userLocation = null;
+
+  function setUserLocation(lat, lon) {
+    userLocation = { lat, lon };
+    userMarker.setLngLat([lon, lat]).addTo(map);
+    map.flyTo({
+      center: [lon, lat],
+      zoom: 14,
+      essential: true
     });
+  }
 
-    map.addControl(new mapboxgl.NavigationControl());
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation(latitude, longitude);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
-    const userMarker = new mapboxgl.Marker({ color: "#4285F4" });
-    const searchMarker = new mapboxgl.Marker({ color: "#FF5733" });
-    let userLocation = null;
-
-    function setUserLocation(lat, lon) {
-      userLocation = { lat, lon };
-      userMarker.setLngLat([lon, lat]).addTo(map);
+  // Recenter button logic
+  document.getElementById("recenterButton").addEventListener("click", () => {
+    if (userLocation) {
       map.flyTo({
-        center: [lon, lat],
+        center: [userLocation.lon, userLocation.lat],
         zoom: 14,
         essential: true
       });
+    } else {
+      console.log("User location not available.");
     }
+  });
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation(latitude, longitude);
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+  // Search location function
+  function searchLocation(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&addressdetails=1&limit=1`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.length > 0) {
+          const location = data[0];
+          const { lat, lon } = location;
+          searchMarker.setLngLat([lon, lat]).addTo(map);
+          map.flyTo({
+            center: [lon, lat],
+            zoom: 14,
+            essential: true
+          });
+        } else {
+          alert("Location not found!");
+        }
+      })
+      .catch(error => {
+        console.error("Error searching location:", error);
+      });
+  }
+
+  document.getElementById("searchBar").addEventListener("keydown", (e) => {
+    if (e.key === 'Enter') {
+      const query = e.target.value;
+      searchLocation(query);
     }
+  });
 
-    // Recenter button logic
-    document.getElementById("recenterButton").addEventListener("click", () => {
-      if (userLocation) {
-        map.flyTo({
-          center: [userLocation.lon, userLocation.lat],
-          zoom: 14,
-          essential: true
-        });
-      } else {
-        console.log("User location not available.");
-      }
-    });
-
-    // Search location function
-    function searchLocation(query) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&addressdetails=1&limit=1`;
-
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            const location = data[0];
-            const { lat, lon } = location;
-            searchMarker.setLngLat([lon, lat]).addTo(map);
-            map.flyTo({
-              center: [lon, lat],
-              zoom: 14,
-              essential: true
-            });
-          } else {
-            alert("Location not found!");
-          }
-        })
-        .catch(error => {
-          console.error("Error searching location:", error);
-        });
+  // Toggle view button logic
+  let isTopView = true;
+  document.getElementById("toggleViewButton").addEventListener("click", () => {
+    if (isTopView) {
+      map.flyTo({
+        pitch: 60,
+        bearing: 0,
+        essential: true
+      });
+    } else {
+      map.flyTo({
+        pitch: 0,
+        bearing: 0,
+        essential: true
+      });
     }
+    isTopView = !isTopView;
+  });
 
-    document.getElementById("searchBar").addEventListener("keydown", (e) => {
-      if (e.key === 'Enter') {
-        const query = e.target.value;
-        searchLocation(query);
-      }
-    });
+  // Sidebar toggle functionality
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggleButton = document.getElementById('sidebarToggleButton');
+  const closeSidebarButton = document.getElementById('closeSidebarButton');
 
-    // Toggle view button logic
-    let isTopView = true;
-    document.getElementById("toggleViewButton").addEventListener("click", () => {
-      if (isTopView) {
-        map.flyTo({
-          pitch: 60,
-          bearing: 0,
-          essential: true
-        });
-      } else {
-        map.flyTo({
-          pitch: 0,
-          bearing: 0,
-          essential: true
-        });
-      }
-      isTopView = !isTopView;
-    });
+  sidebarToggleButton.addEventListener('click', () => {
+    sidebar.style.left = '0'; // Show sidebar
+    sidebarToggleButton.style.display = 'none'; // Hide sidebar button
+  });
 
-    // Sidebar toggle functionality
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggleButton = document.getElementById('sidebarToggleButton');
-    const closeSidebarButton = document.getElementById('closeSidebarButton');
+  closeSidebarButton.addEventListener('click', () => {
+    sidebar.style.left = '-300px'; // Hide sidebar
+    sidebarToggleButton.style.display = 'block'; // Show sidebar button
+  });
+</script>
 
-    sidebarToggleButton.addEventListener('click', () => {
-      sidebar.style.left = '0'; // Show sidebar
-      sidebarToggleButton.style.display = 'none'; // Hide sidebar button
-    });
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+  import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
 
-    closeSidebarButton.addEventListener('click', () => {
-      sidebar.style.left = '-300px'; // Hide sidebar
-      sidebarToggleButton.style.display = 'block'; // Show sidebar button
-    });
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAqF5MOmgFICyWKaBgj2DKN7B7He5VFwKc",
+    authDomain: "plannet-ae327.firebaseapp.com",
+    projectId: "plannet-ae327",
+    storageBucket: "plannet-ae327.firebasestorage.app",
+    messagingSenderId: "794674013856",
+    appId: "1:794674013856:web:2eb1fe687df4eded6acbc5",
+    measurementId: "G-J2Y1QJ6GVS"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  
+  document.getElementById('signInBtn').addEventListener('click', () => {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log('User signed in:', user.displayName, user.email);
+        document.getElementById('sidebar').style.left = '-300px'; // Close sidebar
+      })
+      .catch((error) => {
+        console.error('Error during sign-in:', error.message);
+      });
+  });
+  
+  // Email Login
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    const email = prompt("Enter your email:");
+    const password = prompt("Enter your password:");
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        alert(`Logged in as: ${user.email}`);
+        // Close the sidebar after login
+        document.getElementById('sidebar').style.left = '-300px';
+      })
+      .catch((error) => {
+        console.error("Error during login", error);
+      });
+  });
+  
   </script>
+
 </body>
 </html>
