@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Plan-net</title>
+  <!-- Mapbox GL JS CSS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    #sidebarToggleButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: transparent;
+      border: none;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 250px;
+      height: 100%;
+      background-color: #333;
+      color: white;
+      transition: left 0.3s ease-in-out;
+      padding: 20px;
+      z-index: 9;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+      border-radius: 10px 0 0 10px;
+    }
+
+    #sidebar h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    #sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #sidebar ul li {
+      padding: 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    #sidebar ul li:hover {
+      background-color: #555;
+    }
+
+    #closeSidebarButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: transparent;
+      color: white;
+      border: none;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    #recenterButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    #toggleViewButton {
+      position: absolute;
+      bottom: 100px;
+      right: 20px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    #searchBar {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 25px;
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      z-index: 2;
+    }
+
+    .container {
+      display: flex;
+    }
+
+    .button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+
+/* Popup Styles */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.8); /* Semi-transparent black background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.4s ease, visibility 0s 0.4s; /* Smooth fade-in/fade-out */
+}
+
+/* Hide popup */
+.popup.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Popup content box */
+.popup-content {
+  background: linear-gradient(145deg, #0a0a0a, #1a1a1a); /* Subtle gradient for depth */
+  padding: 30px;
+  text-align: center;
+  border-radius: 12px;
+  width: 350px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); /* Soft shadow for depth */
+  transition: transform 0.3s ease-in-out; /* Subtle scaling effect */
+}
+
+.popup-content:hover {
+  transform: scale(1.02); /* Slight zoom effect on hover */
+}
+
+/* Menu Title */
+.menu-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #d3a6f6; /* Lighter neon lavender */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4); /* Soft glow effect */
+}
+
+/* Popup button styles */
+.popup-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #8a2be2; /* Neon lavender */
+  border: none;
+  padding: 15px;
+  width: 100%;
+  margin: 12px 0;
+  font-size: 16px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease; /* Smooth hover effect */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow */
+}
+
+.popup-btn:hover {
+  background: #9b30ff; /* Neon purple on hover */
+  transform: translateY(-3px); /* Slight lift effect on hover */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+}
+
+/* Icon styles */
+.icon {
+  width: 26px;
+  height: 26px;
+  margin-right: 12px; /* Space between icon and text */
+  transition: transform 0.2s ease;
+}
+
+/* Add icon hover effect */
+.popup-btn:hover .icon {
+  transform: rotate(360deg); /* Smooth rotate effect on button hover */
+}
+
+/* Close button */
+.popup-close {
+  background: #e74c3c; /* Red background for close button */
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 25px;
+  border-radius: 6px;
+  transition: background 0.3s ease, transform 0.3s ease; /* Smooth transition */
+}
+
+.popup-close:hover {
+  background: #c0392b; /* Darker red when hovered */
+  transform: translateY(-3px); /* Slight lift on hover */
+}
+
+/* Animations for smooth visibility */
+.popup-content {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+    /* Media Query for Mobile Responsiveness */
+    @media (max-width: 768px) {
+      #sidebar {
+        width: 250px;
+      }
+
+      #searchBar {
+        width: 250px;
+      }
+
+      #recenterButton, #toggleViewButton {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <button id="closeSidebarButton">&times;</button>
+    <h2>Menu</h2>
+    <ul>
+      <button id="signInButton" class="button">Sign In</button>
+    </ul>
+  </div>
+  <!-- Popup -->
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <h2 class="menu-title">Get Started</h2>
+      <button id="googleSignInButton" class="popup-btn">
+        <span>Continue with Google</span>
+        <img src="google-logo.png" alt="Google Logo" class="icon">
+      </button>
+      <button id="emailSignInButton" class="popup-btn">
+        <span>Continue with Email</span>
+        <img src="email-logo.png" alt="Email Logo" class="icon">
+      </button>
+      <button id="closePopupButton" class="popup-close">Close</button>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Button to trigger redirect to auth.html -->
+  <button id="emailSignInBtn">Sign in / Sign up with Email</button>
+
+  <!-- Sidebar Toggle Button -->
+  <button id="sidebarToggleButton">&#9776;</button>
+
+  <!-- Recenter and Toggle View Buttons -->
+  <div id="recenterButton">📍</div>
+  <div id="toggleViewButton">🔄</div>
+
+  <!-- Search Bar -->
+  <input id="searchBar" type="text" placeholder="Search location..." />
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+
+<script>
+  const mapTilerKey = "cWWbq34RoiMu75UrOkgo";
+
+  // Initialize the map with MapTiler style
+  mapboxgl.accessToken = mapTilerKey;
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
+    center: [74.1240, 15.2993],
+    zoom: 10
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+
+  const userMarker = new mapboxgl.Marker({ color: "#4285F4" });
+  const searchMarker = new mapboxgl.Marker({ color: "#FF5733" });
+  let userLocation = null;
+
+  function setUserLocation(lat, lon) {
+    userLocation = { lat, lon };
+    userMarker.setLngLat([lon, lat]).addTo(map);
+    map.flyTo({
+      center: [lon, lat],
+      zoom: 14,
+      essential: true
+    });
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation(latitude, longitude);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  // Recenter button logic
+  document.getElementById("recenterButton").addEventListener("click", () => {
+    if (userLocation) {
+      map.flyTo({
+        center: [userLocation.lon, userLocation.lat],
+        zoom: 14,
+        essential: true
+      });
+    } else {
+      console.log("User location not available.");
+    }
+  });
+
+  // Search location function
+  function searchLocation(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&addressdetails=1&limit=1`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.length > 0) {
+          const location = data[0];
+          const { lat, lon } = location;
+          searchMarker.setLngLat([lon, lat]).addTo(map);
+          map.flyTo({
+            center: [lon, lat],
+            zoom: 14,
+            essential: true
+          });
+        } else {
+          alert("Location not found!");
+        }
+      })
+      .catch(error => {
+        console.error("Error searching location:", error);
+      });
+  }
+
+  document.getElementById("searchBar").addEventListener("keydown", (e) => {
+    if (e.key === 'Enter') {
+      const query = e.target.value;
+      searchLocation(query);
+    }
+  });
+
+  // Toggle view button logic
+  let isTopView = true;
+  document.getElementById("toggleViewButton").addEventListener("click", () => {
+    if (isTopView) {
+      map.flyTo({
+        pitch: 60,
+        bearing: 0,
+        essential: true
+      });
+    } else {
+      map.flyTo({
+        pitch: 0,
+        bearing: 0,
+        essential: true
+      });
+    }
+    isTopView = !isTopView;
+  });
+
+  // Sidebar toggle functionality
+  document.getElementById('sidebarToggleButton').addEventListener('click', () => {
+    document.getElementById('sidebar').style.left = '0';
+  });
+
+  document.getElementById('closeSidebarButton').addEventListener('click', () => {
+    document.getElementById('sidebar').style.left = '-300px';
+  });
+</script>
+
+<script type="module">
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAqF5MOmgFICyWKaBgj2DKN7B7He5VFwKc",
+    authDomain: "plannet-ae327.firebaseapp.com",
+    projectId: "plannet-ae327",
+    storageBucket: "plannet-ae327.appspot.com",
+    messagingSenderId: "794674013856",
+    appId: "1:794674013856:web:2eb1fe687df4eded6acbc5",
+    measurementId: "G-J2Y1QJ6GVS"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const googleProvider = new GoogleAuthProvider();
+
+  // DOM Elements
+  const signInButton = document.getElementById('signInButton');
+  const popup = document.getElementById('popup');
+  const googleSignInButton = document.getElementById('googleSignInButton');
+  const emailSignInButton = document.getElementById('emailSignInButton');
+  const closePopupButton = document.getElementById('closePopupButton');
+
+  // Debugging: Verify Buttons Exist
+  console.log("Sign-In Button:", signInButton);
+  console.log("Popup:", popup);
+
+  // Show the sign-in popup when the sign-in button is clicked
+  signInButton.addEventListener('click', () => {
+    popup.classList.remove('hidden'); 
+});
+  // Close the popup when the close button is clicked
+  closePopupButton.addEventListener('click', () => {
+    popup.classList.add('hidden'); // Hide popup
+  });
+
+  // Google Sign-In
+  googleSignInButton?.addEventListener('click', async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      alert(`Welcome, ${user.displayName}`);
+      popup?.classList.add('hidden');
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      alert("Error during Google Sign-In.");
+    }
+  });
+
+  // Email Sign-In / Sign-Up
+  emailSignInButton?.addEventListener('click', async () => {
+    window.location.href = "index.html";
+    popup?.classList.add('hidden');
+  });
+</script>
+</body>
+</html>
