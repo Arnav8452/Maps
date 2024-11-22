@@ -219,10 +219,6 @@
   transition: transform 0.2s ease;
 }
 
-/* Add icon hover effect */
-.popup-btn:hover .icon {
-  transform: rotate(360deg); /* Smooth rotate effect on button hover */
-}
 
 /* Close button */
 .popup-close {
@@ -291,12 +287,12 @@
     <div class="popup-content">
       <h2 class="menu-title">Get Started</h2>
       <button id="googleSignInButton" class="popup-btn">
-        <span>Continue with Google</span>
         <img src="google-logo.png" alt="Google Logo" class="icon">
+        <span>Continue with Google</span>
       </button>
       <button id="emailSignInButton" class="popup-btn">
+        <img src="email-logo.jpg" alt="Email Logo" class="icon">
         <span>Continue with Email</span>
-        <img src="email-logo.png" alt="Email Logo" class="icon">
       </button>
       <button id="closePopupButton" class="popup-close">Close</button>
     </div>
@@ -493,7 +489,7 @@
 
   // Email Sign-In / Sign-Up
   emailSignInButton?.addEventListener('click', async () => {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
     popup?.classList.add('hidden');
   });
 </script>
