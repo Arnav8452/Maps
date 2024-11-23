@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Info</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f7fc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #4A90E2;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+    }
+
+    #user-info {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+      font-size: 1.1em;
+    }
+
+    #user-info p {
+      margin: 10px 0;
+      color: #333;
+    }
+
+    #user-info strong {
+      color: #4A90E2;
+    }
+
+    #user-info img {
+      border-radius: 50%;
+      margin-top: 15px;
+      max-width: 150px;
+      height: auto;
+    }
+
+    .redirect {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .redirect-text {
+      font-size: 1.2em;
+      color: #333;
+    }
+
+    .redirect-text a {
+      color: #4A90E2;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .redirect-text a:hover {
+      text-decoration: underline;
+    }
+
+    /* Add some responsiveness */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2em;
+      }
+      #user-info {
+        padding: 15px;
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>User Info</h1>
+
+  <div id="user-info">
+    <!-- User info will be displayed here -->
+  </div>
+
+  <div class="redirect">
+    <span class="redirect-text">
+      <a href="index.html">Back to Homepage</a>
+    </span>
+  </div>
+
+  <script type="module">
+    // Import Firebase modules (for v9+)
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+
+    // Initialize Firebase with your config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAqF5MOmgFICyWKaBgj2DKN7B7He5VFwKc",
+      authDomain: "plannet-ae327.firebaseapp.com",
+      projectId: "plannet-ae327",
+      storageBucket: "plannet-ae327.firebasestorage.app",
+      messagingSenderId: "794674013856",
+      appId: "1:794674013856:web:2eb1fe687df4eded6acbc5",
+      measurementId: "G-J2Y1QJ6GVS"
+    };
+
+    // Initialize Firebase app
+    const app = initializeApp(firebaseConfig);
+
+    // Get Auth instance
+    const auth = getAuth(app);
+
+    // Get the div element where user info will be displayed
+    const userInfoDiv = document.getElementById('user-info');
+
+    // Listen for authentication state changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Display user info on the page
+        userInfoDiv.innerHTML = `
+          <p><strong>User ID:</strong> ${user.uid}</p>
+          <p><strong>Email:</strong> ${user.email}</p>
+          <p><strong>Display Name:</strong> ${user.displayName || 'N/A'}</p>
+          <p><strong>Photo URL:</strong> <img src="${user.photoURL || 'https://via.placeholder.com/150'}" alt="User Photo"></p>
+        `;
+      } else {
+        // Display a message if no user is signed in
+        userInfoDiv.innerHTML = '<p>No user is signed in</p>';
+      }
+    });
+  </script>
+
+</body>
+</html>
