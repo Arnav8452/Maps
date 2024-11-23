@@ -382,6 +382,13 @@ input:checked + .slider:before {
 
     /* Media Query for Mobile Responsiveness */
     @media (max-width: 768px) {
+     html, body {
+       height: 100%; /* Ensure full height on mobile devices */
+      }
+
+      #map {
+         height: 100%; /* Ensure the map covers the full viewport height */
+       }
       #sidebar {
         left: -300px;
         width: 250px;
