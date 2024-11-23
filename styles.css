@@ -117,6 +117,24 @@ body {
   color: #9b30ff; /* Neon purple on hover */
 }
 
+.redirect {
+  text-align: center; /* Centers the text horizontally */
+  margin-top: 10px; /* Add some space above the text */
+}
+
+.redirect-text {
+  font-size: 14px; /* Make the text smaller */
+  color: #007bff; /* Style the text color (blue) */
+}
+
+.redirect-text a {
+  text-decoration: none; /* Remove underline */
+}
+
+.redirect-text a:hover {
+  text-decoration: underline; /* Add underline on hover */
+}
+
 /* Responsive Design */
 @media (max-width: 480px) {
   .container {
