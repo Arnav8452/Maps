@@ -90,12 +90,17 @@
     container: 'map',
     style: `https://api.maptiler.com/maps/b9da03a3-bf55-4679-b0b7-fed53ad43e4a/style.json?key=${mapTilerKey}`,
     center: [74.1240, 15.2993],
-    zoom: 10
+    zoom: 10,
+    prefetchZoomDelta: 1, // Prefetch tiles one zoom level ahead  **
+    maxTileCacheSize: 128, // Reduce tile cache size to prevent unnecessary resource consumption   **
+    fadeDuration: 0,      // Disable fade animations for tiles   **
+    renderWorldCopies: false, // Prevent rendering world duplicates  **
+    antialias: true        // Enable anti-aliasing for smoother visuals  **
   });
 
   map.addControl(new mapboxgl.NavigationControl());
 
-  const userMarker = new mapboxgl.Marker({ color: "#4285F4" });
+  userMarker = new mapboxgl.Marker({ color: "#4285F4" });
   const searchMarker = new mapboxgl.Marker({ color: "#FF5733" });
   let userLocation = null;
 
@@ -121,19 +126,68 @@
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
-
-  // Recenter button logic
-  document.getElementById("recenterButton").addEventListener("click", () => {
-    if (userLocation) {
-      map.flyTo({
-        center: [userLocation.lon, userLocation.lat],
-        zoom: 14,
-        essential: true
-      });
-    } else {
-      console.log("User location not available.");
+//Throttle User Interactions **
+  function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+  //debounce  **
+  document.getElementById("searchBar").addEventListener("keydown", debounce((e) => {
+    if (e.key === 'Enter') {
+      const query = e.target.value;
+      searchLocation(query);
     }
+  }, 300));
+
+  //Preload Tiles **
+  map.on('moveend', () => {
+    const bounds = map.getBounds();
+    // Fetch adjacent tiles if necessary
   });
+
+  let flyToDebounce;
+function debounceFlyTo(center, zoom = 14) {
+  clearTimeout(flyToDebounce);
+  flyToDebounce = setTimeout(() => {
+    map.flyTo({ center, zoom, essential: true });
+  }, 300); // Adjust timing based on need
+}
+
+// Recenter button logic
+document.getElementById("recenterButton").addEventListener("click", () => {
+  // Check if user location is already available
+  if (userLocation) {
+    setUserLocation(userLocation.lat, userLocation.lon);
+  } else if (navigator.geolocation) {
+    // Request user location if not available
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Update userLocation with obtained coordinates and call setUserLocation
+        setUserLocation(
+          position.coords.latitude,
+          position.coords.longitude
+        );
+      },
+      (error) => {
+        // Handle errors (e.g., permission denied)
+        if (error.code === error.PERMISSION_DENIED) {
+          alert("Location permission is required to use the recenter feature.");
+        } else {
+          console.error("Error fetching location:", error);
+          alert("Unable to fetch your location. Please check your device settings.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  } else {
+    console.error("Geolocation API not supported in this browser.");
+    alert("Your browser does not support location services.");
+  }
+});
+
 
   // Search location function
   function searchLocation(query) {
@@ -229,6 +283,43 @@ updateSidebarVisibility();
 // Add event listener for the checkbox change
 sidebarToggleSwitch.addEventListener('change', updateSidebarVisibility);
 
+//Optimize GeoJSON or External Data Sources  **
+
+map.on('load', () => {
+  map.addSource('data', {
+    type: 'geojson',
+    data: 'data.min.geojson', // Pre-minified file for better performance
+    cluster: true,
+    clusterMaxZoom: 12,
+    clusterRadius: 40
+  });
+
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'data',
+    paint: {
+      'circle-color': '#FF5733',
+      'circle-radius': ['step', ['get', 'point_count'], 12, 50, 20, 100, 25]
+    }
+  });
+});
+map.addSource('data', {
+  type: 'geojson',
+  data: 'data.min.geojson', // Pre-minified or simplified file
+  cluster: true,
+  clusterMaxZoom: 14,
+  clusterRadius: 50
+});
+map.addLayer({
+  id: 'cluster-count',
+  type: 'symbol',
+  source: 'data',
+  layout: {
+    'text-field': '{point_count_abbreviated}',
+    'text-size': 12
+  }
+});
 
 </script>
 
