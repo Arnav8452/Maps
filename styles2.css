@@ -394,19 +394,17 @@
 }
 
    
-    /* The switch - the box around the slider */
+/* The switch - the box around the slider */
 .switch {
-  align-items:center;
+  font-size: 14px;
   position: relative;
   display: inline-block;
-  width: 30px;
-  height: 17px;
-  
+  width: 35px;
+  height: 20px;
 }
 
 /* Hide default HTML checkbox */
 .switch input {
-  
   opacity: 0;
   width: 0;
   height: 0;
@@ -414,53 +412,41 @@
 
 /* The slider */
 .slider {
-  align-items: self-end;
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
+  inset: 0;
+  background: #d4acfb;
+  border-radius: 50px;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 13px;
-  width: 13px;
-  left: 2px;
-  bottom: 2px;
+  height: 15px;
+  width: 15px;
+  left: 0.2em;
+  bottom: 0.15em;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  border-radius: 50px;
+  box-shadow: 0 0px 20px rgba(0,0,0,0.4);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-input:checked + .slider {
-  background-color: #2196F3;
+.switch input:checked + .slider {
+  background: #b84fce;
 }
 
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
+.switch input:focus + .slider {
+  box-shadow: 0 0 3px #000000;
 }
 
-input:checked + .slider:before {
-  -webkit-transform: translateX(13px);
-  -ms-transform: translateX(13px);
-  transform: translateX(13px);
+.switch input:checked + .slider:before {
+  transform: translateX(1.6em);
+  width: 20px;
+  height: 20px;
+  bottom: 0;
 }
-
-/* Rounded sliders */
-.slider.round {
-  border-radius: 17px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
 /* Popup Styles */
 .popup {
   position: fixed;
@@ -687,7 +673,7 @@ input:checked + .slider:before {
 
 
     /* Media Query for Mobile Responsiveness */
-    @media (max-width: 768px) {
+    @media (max-width: 766px) {
       html, body {
         height: 100%; /* Ensure full height on mobile devices */
       }
