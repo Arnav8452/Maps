@@ -1,0 +1,59 @@
+.container1 {
+    position: fixed; /* Match #recenterButton */
+    bottom: 175px;
+    left: 97%;
+    z-index: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    height: 50px; /* Matches #recenterButton size */
+    width: 50px;
+    background-color: white; /* Match base background */
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3); /* Consistent shadow */
+    animation: rotate_3922 1.2s linear infinite; /* Keep rotating animation */
+}
+
+.container1 span {
+    position: absolute;
+    border-radius: 50%;
+    height: 100%;
+    width: 100%;
+    background-color: #9b59b6;
+    background-image: linear-gradient(#9b59b6, #84cdfa, #5ad1cd);
+}
+
+.container1 span:nth-of-type(1) {
+    filter: blur(5px); /* Reduced blur from 5px to 2px */
+}
+
+.container1 span:nth-of-type(2) {
+    filter: blur(10px); /* Reduced blur from 10px to 5px */
+}
+
+.container1 span:nth-of-type(3) {
+    filter: blur(5px); /* Reduced blur from 25px to 10px */
+}
+
+.container1 span:nth-of-type(4) {
+    filter: blur(10px); /* Reduced blur from 50px to 20px */
+}
+
+.container1::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background-color: white; /* Match the inner circle with button color */
+    border: solid 5px white;
+    border-radius: 50%;
+}
+
+@keyframes rotate_3922 {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}

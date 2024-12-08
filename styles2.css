@@ -22,7 +22,7 @@
       color: white;
       font-size: 30px;
       cursor: pointer;
-      z-index: 10;
+      z-index: 12;
       transition: all 0.3s ease;
     }
     .menu-title {
@@ -45,7 +45,7 @@
       background-color: #fffdfd;
       transition: left 0.3s ease-in-out;
       padding: 0px;
-      z-index: 9;
+      z-index: 12;
       box-shadow: 4px 0 8px rgba(0, 0, 0, 0.2);
       border-radius: 10px 0 0 10px;
     }
@@ -127,6 +127,20 @@
       font-size: 30px;
       cursor: pointer;
     }
+    #routeButton {
+      position: fixed;
+      bottom: 140px;
+      right: 20px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1;
+    }
+
 
     #recenterButton {
       position: fixed;
@@ -144,7 +158,7 @@
 
     #toggleViewButton {
       position: absolute;
-      bottom: 100px;
+      bottom: 80px;
       right: 20px;
       padding: 10px;
       background-color: white;
@@ -157,6 +171,7 @@
     }
 
     #searchBar {
+      display: block;
       align-items: end;
       position: absolute;
       top: 10px;
@@ -168,7 +183,7 @@
       padding: 10px;
       width: 300px;
       font-size: 16px;
-      z-index: 2;
+      z-index: 10;
     }
 
     .container {
@@ -176,31 +191,209 @@
       display: flex;
     }
 
-    .button {
+    /* From Uiverse.io by satyamchaudharydev */ 
+.button {
+  --primary-color: #645bff;
+  --secondary-color: #fff;
+  --hover-color: #111;
+  --arrow-width: 10px;
+  --arrow-stroke: 2px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 20px;
+  color: var(--secondary-color);
+  padding: 1em 1.8em;
+  background: var(--primary-color);
+  display: flex;
+  transition: 0.2s background;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: bold;
+}
+
+.button .arrow-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button .arrow {
+  margin-top: 1px;
+  width: var(--arrow-width);
+  background: var(--primary-color);
+  height: var(--arrow-stroke);
+  position: relative;
+  transition: 0.2s;
+}
+
+.button .arrow::before {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  border: solid var(--secondary-color);
+  border-width: 0 var(--arrow-stroke) var(--arrow-stroke) 0;
+  display: inline-block;
+  top: -3px;
+  right: 3px;
+  transition: 0.2s;
+  padding: 3px;
+  transform: rotate(-45deg);
+}
+
+.button:hover {
+  background-color: var(--hover-color);
+}
+
+.button:hover .arrow {
+  background: var(--secondary-color);
+}
+
+.button:hover .arrow:before {
+  right: 0;
+}
+    .error-popup {
+      display: flex;
+      justify-content: center;
       align-items: center;
-      background-color: #007bff; /* Blue background */
-      color: white; /* White text */
-      border: none; /* No border */
-      padding: 10px 20px; /* Padding for top/bottom (10px) and left/right (20px) */
-      cursor: pointer; /* Changes cursor to a pointer (hand) when hovering */
-      font-size: 16px; /* Font size of the button text */
-      border-radius: 5px; /* Rounded corners */
-      transition: background-color 0.3s ease; /* Smooth transition for background color */
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #232531;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 10px 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
     }
     
-    .button:hover {
-      background-color: #0056b3; /* Darker blue when hovered */
+    .error-popup-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
     }
     
-    .button:active {
-      background-color: #004085; /* Even darker blue when button is clicked */
+    .icon {
+      color: #d65563;
+      background-color: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(5px);
+      padding: 6px;
+      border-radius: 50%;
     }
     
-    .button:focus {
-      outline: none; /* Removes default focus outline */
-      box-shadow: 0 0 5px 2px rgba(66, 133, 244, 0.8); /* Adds a glow effect on focus */
+    .icon-svg {
+      width: 24px;
+      height: 24px;
     }
     
+    .text-main {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .text-desc {
+      font-size: 12px;
+      color: #a0a0a0;
+    }
+
+   @keyframes slideIn {
+      from {
+        transform: translateY(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .scrollable-button-container {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      width: 100%;
+      padding-bottom: 8px;  /* Adds some space for the scrollbar */
+    }
+    
+    .scrollable-button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #7808d0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;  /* Prevent buttons from shrinking */
+      text-align: center;
+      transition: background-color 0.3s ease;
+    }
+    
+/* From Uiverse.io by Creatlydev */ 
+.floatbutton {
+  position: absolute;
+      top: 10px;
+      left: 68%;
+      transform: translateX(-50%);
+  line-height: 1;
+  text-decoration: none;
+  display: inline-flex;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: var(--clr);
+  color: #fff;
+  border-radius: 25px;
+  font-weight: 600;
+  padding: 9px 1rem;
+  padding-left: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.3s;
+  z-index: 10;
+}
+
+.floatbutton__icon-wrapper {
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  position: relative;
+  color: var(--clr);
+  background-color: #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.floatbutton:hover {
+  background-color: #000;
+}
+
+.floatbutton:hover .floatbutton__icon-wrapper {
+  color: #000;
+}
+
+.floatbutton__icon-svg--copy {
+  position: absolute;
+  transform: translate(-150%, 150%);
+}
+
+.floatbutton:hover .floatbutton__icon-svg:first-child {
+  transition: transform 0.3s ease-in-out;
+  transform: translate(150%, -150%);
+}
+
+.floatbutton:hover .floatbutton__icon-svg--copy {
+  transition: transform 0.3s ease-in-out 0.1s;
+  transform: translate(0);
+}
+
+   
     /* The switch - the box around the slider */
 .switch {
   align-items:center;
@@ -367,6 +560,119 @@ input:checked + .slider:before {
   opacity: 0;
   animation: fadeInUp 0.5s ease-out forwards;
 }
+ /* Custom Marker Style */
+ .fixed-size-marker {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Circular marker */
+  transform: translate(-50%, -50%); /* Center marker */
+  position: absolute; /* Ensure it doesn't scale with zoom */
+  background-image: url('location.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+#planRouteContainer {
+  display: none;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  z-index: 2;
+}
+
+#routeInputs {
+  background-color: white;
+  border: 2px solid #ccc;
+  border-radius: 25px;
+  padding: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px; /* Space between elements */
+}
+
+.input-container {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+ /* Back Button inside the start location input */
+ .route-back-button {
+  background-color: white;
+  color: black; /* Changed to black */
+  border: none;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  outline: none;
+}
+#startLocation {
+  padding-left: 40px; /* To make space for the back button */
+  padding: 10px 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+#startLocation:focus {
+  border-color: #4285F4;
+}
+
+#routeInputs input[type="text"] {
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+#routeInputs input[type="text"]:focus {
+  border-color: #4285F4;
+}
+
+.current-location {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #4285F4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#routeInputs button {
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 16px;
+  border: none;
+  border-radius: 20px;
+  background-color: #4285F4;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#routeInputs button:hover {
+  background-color: #357ae8;
+}
+
 
 @keyframes fadeInUp {
   0% {
@@ -382,13 +688,13 @@ input:checked + .slider:before {
 
     /* Media Query for Mobile Responsiveness */
     @media (max-width: 768px) {
-     html, body {
-       height: 100%; /* Ensure full height on mobile devices */
+      html, body {
+        height: 100%; /* Ensure full height on mobile devices */
       }
-
+    
       #map {
-         height: 100%; /* Ensure the map covers the full viewport height */
-       }
+        height: 100%; /* Ensure the map covers the full viewport height */
+      }
       #sidebar {
         left: -300px;
         width: 250px;
@@ -414,5 +720,12 @@ input:checked + .slider:before {
       .container {
         flex-direction: column;
       }
+      
     }
-  
+    @media (max-width: 1280px) {
+      .floatbutton {
+        position: absolute;
+            top: 52px;
+            left: 50%;
+      }
+    }
