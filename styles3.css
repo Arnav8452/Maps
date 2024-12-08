@@ -1,7 +1,7 @@
 .container1 {
     position: fixed; /* Match #recenterButton */
     bottom: 175px;
-    left: 97%;
+    right: 0.5px;
     z-index: 1;
     cursor: pointer;
     border-radius: 50%;
@@ -57,3 +57,4 @@
         transform: translate(-50%, -50%) rotate(360deg);
     }
 }
+

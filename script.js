@@ -20,17 +20,18 @@ const auth = getAuth(app);
 document.addEventListener('DOMContentLoaded', (event) => {
 // Get reference to the auth button
 const authButton = document.getElementById("signInButton");
+const signInText = document.getElementById("signInText");
 
 // Listen for authentication state changes
 onAuthStateChanged(auth, (user) => {
   if (user) {
     // If user is logged in, update button text and functionality
-    authButton.textContent = 'Sign Out' // Change button text to "Sign Out"
+    signInText.textContent = 'Sign Out';  // Change button text to "Sign Out"
     authButton.removeEventListener('click', signIn);  // Remove the sign-in listener
     authButton.addEventListener('click', signOut);    // Add the sign-out listener
   } else {
     // If user is logged out, update button text and functionality
-    authButton.textContent = 'Sign In';  // Change button text to "Sign In"
+    signInText.textContent = 'Sign In';  // Change button text to "Sign In"
     authButton.removeEventListener('click', signOut); // Remove the sign-out listener
     authButton.addEventListener('click', signIn);     // Add the sign-in listener
   }
