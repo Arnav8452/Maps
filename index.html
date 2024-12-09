@@ -98,12 +98,13 @@
   <div id="recenterButton">📍</div>
   <div id="toggleViewButton">🔄</div>
   <div id="routeButton">⤴️</div>
-  <div class="container1" id="Plan">
+  <div type="button" class="container1" id="Plan">
     <span></span>
     <span></span>
     <span></span>
     <span></span>
   </div>
+  
 
   <div id="error-popup" class="error-popup" style="display: none;">
     <div class="error-popup-content">
@@ -342,7 +343,7 @@ document.getElementById("recenterButton").addEventListener("click", () => {
   document.getElementById("toggleViewButton").addEventListener("click", () => {
     if (isTopView) {
       map.flyTo({
-        pitch: 60,
+        pitch: 55,
         bearing: 0,
         essential: true
       });
@@ -355,6 +356,48 @@ document.getElementById("recenterButton").addEventListener("click", () => {
     }
     isTopView = !isTopView;
   });
+
+
+  document.getElementById("Plan").addEventListener("click", () => {
+    const { lat, lon } = userLocation; // Get the user's location (marker)
+    const mapCenter = map.getCenter(); // Get the current center of the map
+
+      // Set the initial view to an angled 3D view with pitch 60° and bearing 0°
+      map.setPitch(55);   // Set the pitch for the angled view (3D effect)
+      map.setBearing(0);  // Set the map's rotation to 0 (facing the center)
+  
+      const duration = 4000; // Total rotation duration in milliseconds
+      const steps = 180; // Number of steps for smooth rotation
+      const radius = 0.0005; // Radius for the circular path around the user
+  
+      let step = 0;
+      const interval = setInterval(() => {
+        const angle = (step / steps) * 360; // Calculate the current angle of rotation
+        const radians = (angle * Math.PI) / 180;
+  
+        // Calculate latitude and longitude offsets for the circular path
+        const offsetLat = radius * Math.sin(radians);
+        const offsetLon = radius * Math.cos(radians);
+  
+        // Move the camera in a circular path around the user's location, maintaining the pitch
+        map.setCenter([lon + offsetLon, lat + offsetLat]);
+  
+        // Recenter the map on the user's location during the rotation
+        document.getElementById("recenterButton").click();  // Simulate click to recenter
+  
+        // Calculate bearing to always face the user's marker
+        const angleToUser = Math.atan2(lon - (lon + offsetLon), lat - (lat + offsetLat));
+        const bearing = (angleToUser * 180) / Math.PI; // Convert to degrees
+  
+        map.setBearing(bearing); // Set the bearing to always face the user's marker
+  
+        step++;
+        if (step > steps) {
+          clearInterval(interval); // Stop the rotation after a full 360 degrees
+        }
+      }, duration / steps); // Smooth rotation over the specified duration
+    });
+ 
  // Route button logic
  document.getElementById("routeButton").addEventListener("click", () => {
   document.getElementById('planRouteContainer').style.display= 'block';
@@ -440,6 +483,7 @@ map.addLayer({
     'text-size': 12
   }
 });
+
 </script>
 <script>
   // Use Current Location logic
