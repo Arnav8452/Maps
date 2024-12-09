@@ -357,46 +357,64 @@ document.getElementById("recenterButton").addEventListener("click", () => {
     isTopView = !isTopView;
   });
 
-
   document.getElementById("Plan").addEventListener("click", () => {
     const { lat, lon } = userLocation; // Get the user's location (marker)
-    const mapCenter = map.getCenter(); // Get the current center of the map
+    const initialZoom = 14; // Initial zoom level
+    const zoomOutLevel = 12; // Zoom out to level 12 during the rotation
+    const zoomDuration = 2000; // Duration for the zoom effect
+    const duration = 4000; // Total rotation duration in milliseconds
+    const steps = 180; // Number of steps for smooth rotation
+    const radius = 0.0005; // Radius for the circular path around the user
 
-      // Set the initial view to an angled 3D view with pitch 60° and bearing 0°
-      map.setPitch(55);   // Set the pitch for the angled view (3D effect)
-      map.setBearing(0);  // Set the map's rotation to 0 (facing the center)
-  
-      const duration = 4000; // Total rotation duration in milliseconds
-      const steps = 180; // Number of steps for smooth rotation
-      const radius = 0.0005; // Radius for the circular path around the user
-  
-      let step = 0;
-      const interval = setInterval(() => {
+    // Set the initial view to an angled 3D view with pitch 60° and bearing 0°
+    map.setPitch(55);   // Set the pitch for the angled view (3D effect)
+    map.setBearing(0);  // Set the map's rotation to 0 (facing the center)
+    
+    let step = 0;
+    const interval = setInterval(() => {
         const angle = (step / steps) * 360; // Calculate the current angle of rotation
         const radians = (angle * Math.PI) / 180;
-  
+
         // Calculate latitude and longitude offsets for the circular path
         const offsetLat = radius * Math.sin(radians);
         const offsetLon = radius * Math.cos(radians);
-  
+
         // Move the camera in a circular path around the user's location, maintaining the pitch
         map.setCenter([lon + offsetLon, lat + offsetLat]);
-  
+
+        // Adjust zoom level dynamically (zoom out)
+        const zoomStep = initialZoom - zoomOutLevel; // Difference in zoom levels
+        const currentZoom = initialZoom - (zoomStep * (step / steps)); // Gradual zoom out
+        map.setZoom(currentZoom);
+
         // Recenter the map on the user's location during the rotation
         document.getElementById("recenterButton").click();  // Simulate click to recenter
-  
+
         // Calculate bearing to always face the user's marker
         const angleToUser = Math.atan2(lon - (lon + offsetLon), lat - (lat + offsetLat));
         const bearing = (angleToUser * 180) / Math.PI; // Convert to degrees
-  
         map.setBearing(bearing); // Set the bearing to always face the user's marker
-  
+
         step++;
         if (step > steps) {
-          clearInterval(interval); // Stop the rotation after a full 360 degrees
+            clearInterval(interval); // Stop the rotation after a full 360 degrees
+
+            // Smooth zoom-in after rotation ends
+            let zoomInStep = 0;
+            const zoomInInterval = setInterval(() => {
+                const zoomProgress = zoomInStep / (zoomDuration / 20);
+                const zoomInLevel = zoomOutLevel + zoomProgress * (initialZoom - zoomOutLevel);
+                map.setZoom(zoomInLevel);
+                
+                zoomInStep++;
+                if (zoomInStep > zoomDuration / 20) {
+                    clearInterval(zoomInInterval); // End zoom-in animation
+                }
+            }, 20); // Smooth zoom-in over the specified zoom duration (2 seconds)
         }
-      }, duration / steps); // Smooth rotation over the specified duration
-    });
+    }, duration / steps); // Smooth rotation over the specified duration
+});
+
  
  // Route button logic
  document.getElementById("routeButton").addEventListener("click", () => {
