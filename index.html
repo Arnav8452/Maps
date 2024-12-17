@@ -319,7 +319,7 @@ document.getElementById("recenterButton").addEventListener("click", () => {
           searchMarker.setLngLat([lon, lat]).addTo(map);
           map.flyTo({
             center: [lon, lat],
-            zoom: 14,
+            zoom: 12,
             essential: true
           });
         } else {
