@@ -534,7 +534,7 @@ map.addLayer({
         document.getElementById("startLocation").value = "Current Location";
 
         if (startMarker) startMarker.remove();
-        startMarker = new mapboxgl.Marker({ color: 'green' })
+        startMarker = new mapboxgl.Marker({ color: 'orange' })
           .setLngLat(startCoords)
           .setPopup(new mapboxgl.Popup().setText("Start: Current Location"))
           .addTo(map);
