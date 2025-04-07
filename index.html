@@ -6,7 +6,8 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Plan-net</title>
   <!-- Mapbox GL JS CSS -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet" />
   <link rel="stylesheet" href="styles2.css">
   <link rel="stylesheet" href="styles3.css">
 </head>
@@ -515,113 +516,157 @@ map.addLayer({
 });
 
 </script>
+
 <script>
- // Replace with your MapTiler Cloud API Key
-// Variables to store the starting coordinates ([lat, lon]) and route layer
-let startCoords = null;
-let routeLayer = null;
+  const orsApiKey = '5b3ce3597851110001cf6248d6d568664a9145d9a6cb629272fd198c';
 
-// "Use Current Location" button event handler
-document.getElementById("useCurrentLocation").addEventListener("click", () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+  let startCoords = null;
+    let startMarker = null;
+    let endMarker = null;
+    let routeLayer = null;
+
+  // Use Current Location
+  document.getElementById("useCurrentLocation").addEventListener("click", () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
         const { latitude, longitude } = position.coords;
-        startCoords = [latitude, longitude];
+        startCoords = [longitude, latitude];
         document.getElementById("startLocation").value = "Current Location";
-        map.setView(startCoords, 14);
-        L.marker(startCoords).addTo(map);
-      },
-      (error) => {
-        console.error("Error getting location:", error);
-        alert("Unable to fetch your location. Please check your device settings.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  } else {
-    alert("Geolocation is not supported by your browser.");
-  }
-});
 
-// Geocoding function using MapTiler Cloud's API
-async function geocode(query) {
-  const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${mapTilerKey}`;
-  const response = await fetch(url);
-  const data = await response.json();
-  if (data.features && data.features.length > 0) {
-    return data.features[0].geometry.coordinates;
-  }
-  return null;
-}
+        if (startMarker) startMarker.remove();
+        startMarker = new mapboxgl.Marker({ color: 'green' })
+          .setLngLat(startCoords)
+          .setPopup(new mapboxgl.Popup().setText("Start: Current Location"))
+          .addTo(map);
+        
+        map.flyTo({ center: startCoords, zoom: 13 });
+      }, () => alert("Unable to fetch location."));
+    } else {
+      alert("Geolocation not supported.");
+    }
+  });
 
-// "Get Route" button event handler
-document.getElementById("getRoute").addEventListener("click", async () => {
-  const endInput = document.getElementById("endLocation").value.trim();
-  const getRouteBtn = document.getElementById("getRoute");
-
-  if (!endInput) {
-    alert("Please enter a destination.");
-    return;
-  }
-
-  if (!startCoords) {
-    alert("Please use your current location or enter a start location.");
-    return;
-  }
-
-  const startLonLat = [startCoords[1], startCoords[0]];
-  const endLonLat = await geocode(endInput);
-  if (!endLonLat) {
-    alert("Destination not found.");
-    return;
-  }
-
-  const routingUrl = `https://api.maptiler.com/routes/v2?key=${mapTilerKey}&start=${startLonLat.join(',')}&end=${endLonLat.join(',')}&transport=car`;
-
-  try {
-    // ✅ Disable button + show loading
-    getRouteBtn.disabled = true;
-    getRouteBtn.textContent = "Loading...";
-
-    const res = await fetch(routingUrl);
+  // Geocode with Nominatim
+  async function geocode(query) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+    const res = await fetch(url);
     const data = await res.json();
+    if (data.length) {
+      return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    }
+    return null;
+  }
 
-    if (data.routes && data.routes.length > 0) {
-      const route = data.routes[0];
-      const routeGeoJson = route.geometry;
+  document.getElementById("getRoute").addEventListener("click", async () => {
+    const startInput = document.getElementById("startLocation").value.trim();
+    const endInput = document.getElementById("endLocation").value.trim();
 
-      if (routeLayer) {
-        map.removeLayer(routeLayer);
+    if (!endInput) return alert("Please enter an end location.");
+
+    // Determine start coordinates based on input
+    if (startInput === "Current Location") {
+      if (!startCoords) {
+        return alert("Current location not yet available. Please click 'Use Current Location'.");
+      }
+    } else {
+      const geocodedStart = await geocode(startInput);
+      if (!geocodedStart) return alert("Start location not found.");
+      startCoords = geocodedStart;
+
+      if (startMarker) startMarker.remove();
+      startMarker = new mapboxgl.Marker({ color: 'green' })
+        .setLngLat(startCoords)
+        .setPopup(new mapboxgl.Popup().setText(`Start: ${startInput}`))
+        .addTo(map);
+    }
+
+    // Geocode end location
+    const endCoords = await geocode(endInput);
+    if (!endCoords) return alert("End location not found.");
+
+    if (endMarker) endMarker.remove();
+    endMarker = new mapboxgl.Marker({ color: 'red' })
+      .setLngLat(endCoords)
+      .setPopup(new mapboxgl.Popup().setText(`End: ${endInput}`))
+      .addTo(map);
+
+    // Route API
+    const body = {
+      coordinates: [startCoords, endCoords]
+    };
+
+    try {
+      const res = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
+        method: "POST",
+        headers: {
+          "Authorization": orsApiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const geojson = await res.json();
+      const route = geojson.features[0];
+      const { distance, duration } = route.properties.summary;
+
+      // Add or update source
+      if (!map.getSource("route")) {
+        map.addSource("route", { type: "geojson", data: route });
+      } else {
+        map.getSource("route").setData(route);
       }
 
-      routeLayer = L.geoJSON(routeGeoJson, {
-        style: { color: '#3b82f6', weight: 5 }
-      }).addTo(map);
+      // Add glow layer under route line
+      if (!map.getLayer("route-glow")) {
+        map.addLayer({
+          id: "route-glow",
+          type: "line",
+          source: "route",
+          layout: {},
+          paint: {
+            "line-color": "#191970",
+            "line-width": 10,
+            "line-opacity": 0.5
+          }
+        });
+      }
 
-      map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+      // Add route line with dotted pattern
+      if (!map.getLayer("route-layer")) {
+        map.addLayer({
+          id: "route-layer",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-cap": "round",
+            "line-join": "round"
+          },
+          paint: {
+            "line-color": "#007bff",
+            "line-width": 4,
+            "line-dasharray": [2, 4]
+          }
+        });
+      }
 
-      // ✅ Show distance and time
-      const distanceKm = (route.distance / 1000).toFixed(2);
-      const durationMin = Math.round(route.duration / 60);
-      alert(`Route: ${distanceKm} km\nEstimated time: ${durationMin} mins`);
+      // Fit map to bounds
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend(startCoords).extend(endCoords);
+      map.fitBounds(bounds, { padding: 50 });
 
-      // ✅ Auto-close the routing popup (if it exists)
-      const panel = document.getElementById("planRouteContainer");
-      if (panel) panel.style.display = "none";
-    } else {
-      alert("No route found.");
+      // Display info
+      const distanceKm = (distance / 1000).toFixed(2);
+      const durationMin = Math.round(duration / 60);
+      showPopup("Route Summary", `Distance: ${distanceKm} km\nETA: ${durationMin} min`);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch route.");
     }
-  } catch (error) {
-    console.error("Error fetching route:", error);
-    alert("Error fetching route.");
-  } finally {
-    // ✅ Re-enable button
-    getRouteBtn.disabled = false;
-    getRouteBtn.textContent = "Get Route";
-  }
-});
-
+  });
 </script>
+
+
 
 <script type="module">
 
