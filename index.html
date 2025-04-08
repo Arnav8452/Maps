@@ -69,26 +69,30 @@
     </div>
   </div>
 </div>
-
-  <!-- Routing Popup -->
-  <div id="planRouteContainer">
-    <div id="routeInputs">
-      <!-- Close Button -->
-      <button id="closeRouteButton">✕</button>
-      
-      <div class="input-container2">
-        <input id="startLocation" type="text" placeholder="Enter start location" />
-        <div id="useCurrentLocation">📍 Use Current Location</div>
-      </div>
-      
-      <div class="input-container2">
-        <input id="endLocation" type="text" placeholder="Enter destination" />
-      </div>
-      
-      <button id="getRoute">Get Route</button>
+<!-- Routing Popup Panel -->
+<div id="planRouteContainer">
+  <div id="routeInputs">
+    <!-- Close Button -->
+    <button id="closeRouteButton">✕</button>
+    
+    <div class="input-container2">
+      <input id="startLocation" type="text" placeholder="Enter start location" autocomplete="off" />
+      <!-- Container for autocomplete suggestions (if needed) -->
+      <div id="startSuggestions" class="suggestions"></div>
+      <div id="useCurrentLocation">📍 Use Current Location</div>
     </div>
+    
+    <div class="input-container2">
+      <input id="endLocation" type="text" placeholder="Enter destination" autocomplete="off" />
+      <!-- Container for autocomplete suggestions (if needed) -->
+      <div id="endSuggestions" class="suggestions"></div>
+      <!-- Button to select destination on map -->
+      <button id="selectDestination">Select Destination on Map</button>
+    </div>
+    
+    <button id="getRoute">Get Route</button>
   </div>
-
+</div>
 
 
   <!-- Map Container -->
@@ -525,76 +529,233 @@ map.addLayer({
     let endMarker = null;
     let routeLayer = null;
 
-  // Use Current Location
-  document.getElementById("useCurrentLocation").addEventListener("click", () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        startCoords = [longitude, latitude];
-        document.getElementById("startLocation").value = "Current Location";
-
-        if (startMarker) startMarker.remove();
-        startMarker = new mapboxgl.Marker({ color: '#808080 ' })
-          .setLngLat(startCoords)
-          .setPopup(new mapboxgl.Popup().setText("Start: Current Location"))
-          .addTo(map);
-        
-        map.flyTo({ center: startCoords, zoom: 13 });
-      }, () => alert("Unable to fetch location."));
-    } else {
-      alert("Geolocation not supported.");
+     // Autocomplete using ORS
+  async function autocompleteORS(query) {
+    try {
+      const res = await fetch(`https://api.openrouteservice.org/geocode/autocomplete?api_key=${orsApiKey}&text=${encodeURIComponent(query)}&size=5`);
+      const data = await res.json();
+      return data.features || [];
+    } catch (err) {
+      showPopup("Autocomplete Error", err.message);
+      return [];
     }
-  });
-
-  // Geocode with Nominatim
-  async function geocode(query) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.length) {
-      return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-    }
-    return null;
   }
 
+  // Forward geocoding using ORS
+  async function geocode(query) {
+    const orsUrl = `https://api.openrouteservice.org/geocode/search?api_key=${orsApiKey}&text=${encodeURIComponent(query)}&limit=1`;
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+  
+    try {
+      const res = await fetch(orsUrl);
+      const data = await res.json();
+  
+      if (data.features && data.features.length > 0) {
+        return data.features[0].geometry.coordinates; // [lon, lat]
+      }
+  
+      // Fallback to Nominatim
+      const nomRes = await fetch(nominatimUrl);
+      const nomData = await nomRes.json();
+  
+      if (nomData.length > 0) {
+        return [parseFloat(nomData[0].lon), parseFloat(nomData[0].lat)];
+      }
+  
+      return null;
+    } catch (err) {
+      showPopup("Geocoding Error", err.message);
+      return null;
+    }
+  }
+  
+
+  // Reverse geocoding using ORS
+  async function reverseGeocode(coords) {
+    const [lon, lat] = coords;
+  
+    // ORS reverse geocode
+    const orsUrl = `https://api.openrouteservice.org/geocode/reverse?api_key=${orsApiKey}&point.lon=${lon}&point.lat=${lat}&size=1`;
+    const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+  
+    try {
+      const orsRes = await fetch(orsUrl);
+      const orsData = await orsRes.json();
+  
+      if (orsData.features && orsData.features.length > 0) {
+        return orsData.features[0].properties.label;
+      }
+  
+      // Fallback to Nominatim
+      const nomRes = await fetch(nominatimUrl, {
+        headers: {
+          "User-Agent": "YourAppNameHere/1.0 (your.email@example.com)"
+        }
+      });
+      const nomData = await nomRes.json();
+  
+      return nomData.display_name || null;
+  
+    } catch (err) {
+      showPopup("Reverse Geocoding Error", err.message);
+      return null;
+    }
+  }
+  
+  
+
+     // Make markers draggable and update address on dragend
+     function addDraggableMarker(coords, color, popupText, isStart) {
+      // Create a new marker with draggable true
+      const marker = new mapboxgl.Marker({ color: color, draggable: true })
+        .setLngLat(coords)
+        .setPopup(new mapboxgl.Popup().setText(popupText))
+        .addTo(map);
+      
+      // When dragging stops, perform reverse geocoding and update input
+      marker.on('dragend', async () => {
+        const newCoords = marker.getLngLat();
+        const label = await reverseGeocode([newCoords.lng, newCoords.lat]);
+        if (isStart) {
+          startCoords = [newCoords.lng, newCoords.lat];
+          document.getElementById("startLocation").value = label || 'Unknown Location';
+        } else {
+          document.getElementById("endLocation").value = label || 'Unknown Location';
+        }
+      });
+      
+      return marker;
+    }
+
+     // Setup autocomplete for given input element and suggestions container
+  function setupAutocomplete(inputId, suggestionsId) {
+    const input = document.getElementById(inputId);
+    const suggestionsDiv = document.getElementById(suggestionsId);
+
+    input.addEventListener("input", async () => {
+      const query = input.value.trim();
+      if (query.length < 3) {
+        suggestionsDiv.innerHTML = "";
+        return;
+      }
+      const suggestions = await autocompleteORS(query);
+      suggestionsDiv.innerHTML = "";
+      suggestions.forEach(s => {
+        const label = s.properties.label;
+        const div = document.createElement("div");
+        div.textContent = label;
+        div.addEventListener("click", () => {
+          input.value = label;
+          suggestionsDiv.innerHTML = "";
+        });
+        suggestionsDiv.appendChild(div);
+      });
+    });
+  }
+
+  // Setup autocomplete on start and end location inputs
+  setupAutocomplete("startLocation", "startSuggestions");
+  setupAutocomplete("endLocation", "endSuggestions");
+
+
+    document.getElementById("useCurrentLocation").addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lon = position.coords.longitude;
+            const lat = position.coords.latitude;
+            startCoords = [lon, lat];
+            // Use reverse geocoding to get a label for the coordinates
+            const label = await reverseGeocode(startCoords);
+            document.getElementById("startLocation").value = label || 'Current Location';
+            
+            // Remove existing start marker if present
+            if (startMarker) startMarker.remove();
+            // Create a new draggable marker for the start location
+            startMarker = new mapboxgl.Marker({ color: 'green', draggable: true })
+              .setLngLat(startCoords)
+              .setPopup(new mapboxgl.Popup().setText("Start: Current Location"))
+              .addTo(map);
+            
+            // Optionally, update the address if the user drags the marker
+            startMarker.on('dragend', async () => {
+              const newCoords = startMarker.getLngLat();
+              startCoords = [newCoords.lng, newCoords.lat];
+              const newLabel = await reverseGeocode(startCoords);
+              document.getElementById("startLocation").value = newLabel || 'Unknown Location';
+            });
+            
+            map.flyTo({ center: startCoords, zoom: 13 });
+          },
+          (error) => {
+            showPopup("Location Error", "Unable to fetch current location. " + error.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        showPopup("Geolocation Unsupported", "Your browser does not support geolocation");
+      }
+    });
+
+    // "Select Destination on Map" button event handler
+  document.getElementById("selectDestination").addEventListener("click", () => {
+    // If destination marker does not exist, create a draggable one at the current map center
+    const center = map.getCenter();
+    const destCoords = [center.lng, center.lat];
+    if (!endMarker) {
+      endMarker = new mapboxgl.Marker({ color: 'red', draggable: true }) 
+        .setLngLat(destCoords)
+        .setPopup(new mapboxgl.Popup().setText("Drag to select destination"))
+        .addTo(map);
+      endMarker.on('dragend', async () => {
+        const newCoords = endMarker.getLngLat();
+        const label = await reverseGeocode([newCoords.lng, newCoords.lat]);
+        document.getElementById("endLocation").value = label || "Unknown Location";
+      });
+      showPopup("Select Destination", "Drag the red marker to your desired destination.", "success");
+    } else {
+      // If already exists, notify user to drag the marker
+      showPopup("Select Destination", "Drag the red marker to refine your destination.", "success");
+    }
+  });
+  
+
+  // "Get Route" button event handler
   document.getElementById("getRoute").addEventListener("click", async () => {
     const startInput = document.getElementById("startLocation").value.trim();
     const endInput = document.getElementById("endLocation").value.trim();
-
-    if (!endInput) return alert("Please enter an end location.");
-
+  
+    if (!endInput) return showPopup("Input Error", "Please enter an end location.");
+  
     // Determine start coordinates based on input
     if (startInput === "Current Location") {
       if (!startCoords) {
-        return alert("Current location not yet available. Please click 'Use Current Location'.");
+        return showPopup("Location Error", "Current location not yet available. Please click 'Use Current Location'.");
       }
     } else {
       const geocodedStart = await geocode(startInput);
-      if (!geocodedStart) return alert("Start location not found.");
+      if (!geocodedStart) return showPopup("Geocoding Error", "Start location not found.");
       startCoords = geocodedStart;
-
+  
       if (startMarker) startMarker.remove();
       startMarker = new mapboxgl.Marker({ color: 'green' })
         .setLngLat(startCoords)
         .setPopup(new mapboxgl.Popup().setText(`Start: ${startInput}`))
         .addTo(map);
     }
-
+  
     // Geocode end location
     const endCoords = await geocode(endInput);
-    if (!endCoords) return alert("End location not found.");
-
+    if (!endCoords) return showPopup("Geocoding Error", "End location not found.");
+  
     if (endMarker) endMarker.remove();
     endMarker = new mapboxgl.Marker({ color: 'red' })
       .setLngLat(endCoords)
       .setPopup(new mapboxgl.Popup().setText(`End: ${endInput}`))
       .addTo(map);
-
-    // Route API
-    const body = {
-      coordinates: [startCoords, endCoords]
-    };
-
+  
+    const body = { coordinates: [startCoords, endCoords] };
+  
     try {
       const res = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
         method: "POST",
@@ -604,18 +765,17 @@ map.addLayer({
         },
         body: JSON.stringify(body)
       });
-
+  
       const geojson = await res.json();
       const route = geojson.features[0];
       const { distance, duration } = route.properties.summary;
-
-      // Add or update source
+  
+      // Add or update route source
       if (!map.getSource("route")) {
         map.addSource("route", { type: "geojson", data: route });
       } else {
         map.getSource("route").setData(route);
       }
-
       // Add glow layer under route line
       if (!map.getLayer("route-glow")) {
         map.addLayer({
